@@ -1,0 +1,31 @@
+{
+  "name": "karasin",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "main": "index.js",
+  "scripts": {
+    "dev:backend": "npm run dev --workspace backend",
+    "dev:frontend": "npm run dev --workspace frontend",
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run build --workspace backend && npm run build --workspace frontend"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luck-nara/karasin.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/luck-nara/karasin/issues"
+  },
+  "homepage": "https://github.com/luck-nara/karasin#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
