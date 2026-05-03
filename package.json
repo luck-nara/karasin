@@ -7,6 +7,10 @@
     "frontend",
     "backend"
   ],
+  "overrides": {
+  "vite": "6.3.5",
+  "@vitejs/plugin-react": "4.3.4"
+  },
   "main": "index.js",
   "scripts": {
     "dev:backend": "npm run dev --workspace backend",
