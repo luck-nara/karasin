@@ -1,15 +1,46 @@
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
-CREATE TABLE IF NOT EXISTS places (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name text NOT NULL,
-  description text NOT NULL,
-  location text NOT NULL,
-  province text NOT NULL,
-  tags text[] NOT NULL DEFAULT '{}',
-  image_url text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+-- =========================
+-- 1. categories
+-- =========================
+CREATE TABLE IF NOT EXISTS categories (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) UNIQUE NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS places_name_idx ON places (name);
+-- =========================
+-- 2. tourist_places
+-- =========================
+CREATE TABLE IF NOT EXISTS tourist_places (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+
+  category_id INT REFERENCES categories(id),
+
+  district VARCHAR(100),
+
+  latitude DECIMAL(10,8),
+  longitude DECIMAL(11,8),
+
+  google_maps_url TEXT,
+
+  is_active BOOLEAN DEFAULT true,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =========================
+-- 3. place_images
+-- =========================
+CREATE TABLE IF NOT EXISTS place_images (
+  id SERIAL PRIMARY KEY,
+  place_id INT REFERENCES tourist_places(id) ON DELETE CASCADE,
+  image_url TEXT NOT NULL,
+  is_cover BOOLEAN DEFAULT false
+);
+
+-- =========================
+-- INDEX (เพิ่มความเร็ว)
+-- =========================
+CREATE INDEX IF NOT EXISTS idx_places_category ON tourist_places(category_id);
+CREATE INDEX IF NOT EXISTS idx_places_name ON tourist_places(name);

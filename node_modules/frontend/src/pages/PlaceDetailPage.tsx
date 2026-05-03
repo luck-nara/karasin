@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
+import { GoogleMapsIcon } from "../components/GoogleMapsIcon";
 import { placesApi } from "../api/places";
-import type { Place } from "../types";
+import type { PlaceDetail } from "../types";
+
+const FALLBACK_IMG =
+  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80";
 
 export function PlaceDetailPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const [place, setPlace] = useState<Place | null>(null);
+  const [place, setPlace] = useState<PlaceDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [activeImage, setActiveImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -16,7 +19,11 @@ export function PlaceDetailPage() {
     (async () => {
       try {
         const data = await placesApi.get(id);
-        if (alive) setPlace(data);
+        if (alive) {
+          setPlace(data);
+          const first = data.images[0]?.url ?? FALLBACK_IMG;
+          setActiveImage(first);
+        }
       } catch (e) {
         if (alive) setError(e instanceof Error ? e.message : "โหลดข้อมูลไม่สำเร็จ");
       }
@@ -26,64 +33,72 @@ export function PlaceDetailPage() {
     };
   }, [id]);
 
-  async function onDelete() {
-    if (!id) return;
-    const ok = window.confirm("ลบสถานที่นี้?");
-    if (!ok) return;
-    setBusy(true);
-    try {
-      await placesApi.remove(id);
-      navigate("/");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "ลบไม่สำเร็จ");
-    } finally {
-      setBusy(false);
-    }
-  }
+  const thumbs = place?.images?.length
+    ? place.images.map((i) => i.url)
+    : [FALLBACK_IMG];
 
   return (
-    <section className="panel">
-      <div className="panelHeader">
-        <div style={{ display: "grid", gap: 4 }}>
-          <div style={{ fontSize: 18, fontWeight: 650 }}>{place?.name ?? "รายละเอียดสถานที่"}</div>
+    <section className="detailPage panel">
+      <div className="panelHeader detailHeader">
+        <div>
+          <div className="panelTitle">{place?.name ?? "รายละเอียดสถานที่"}</div>
           {place ? (
-            <div className="muted">
-              {place.province} • {place.location}
-            </div>
+            <div className="muted detailMeta">{place.categoryName ?? "ไม่ระบุหมวด"}</div>
           ) : null}
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          {id ? (
-            <Link to={`/places/${id}/edit`} className="button buttonPrimary">
-              แก้ไข
-            </Link>
+        <div className="detailHeaderActions">
+          {place?.googleMapsUrl ? (
+            <a
+              className="button buttonPrimary detailMapsBtn"
+              href={place.googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <GoogleMapsIcon />
+              <span>เปิดใน Google Maps</span>
+            </a>
           ) : null}
-          <button className="button buttonDanger" onClick={onDelete} disabled={!place || busy}>
-            {busy ? "กำลังลบ..." : "ลบ"}
-          </button>
+          <Link to="/places" className="button">
+            กลับไปรายการ
+          </Link>
         </div>
       </div>
-      <div className="panelBody stack">
+      <div className="panelBody detailBody">
         {error ? <div className="muted">{error}</div> : null}
         {!place ? <div className="muted">กำลังโหลด...</div> : null}
-        {place?.imageUrl ? <img className="thumb" src={place.imageUrl} alt={place.name} /> : null}
         {place ? (
           <>
-            <div>
-              <div className="muted" style={{ fontSize: 13, marginBottom: 6 }}>
-                รายละเอียด
+            <div className="detailGallery">
+              <div className="detailHero">
+                <img
+                  className="detailHeroImg"
+                  src={activeImage ?? FALLBACK_IMG}
+                  alt={place.name}
+                />
               </div>
-              <div style={{ whiteSpace: "pre-wrap" }}>{place.description}</div>
+              {thumbs.length > 1 ? (
+                <div className="detailThumbs" role="list">
+                  {thumbs.map((url, idx) => (
+                    <button
+                      key={`${idx}-${url}`}
+                      type="button"
+                      className={`detailThumbBtn${activeImage === url ? " isActive" : ""}`}
+                      onClick={() => setActiveImage(url)}
+                    >
+                      <img src={url} alt="" />
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
-            {place.tags.length ? (
-              <div className="muted">แท็ก: {place.tags.join(", ")}</div>
-            ) : (
-              <div className="muted">ไม่มีแท็ก</div>
-            )}
+
+            <div>
+              <div className="detailLabel">รายละเอียด</div>
+              <p className="detailText">{place.description}</p>
+            </div>
           </>
         ) : null}
       </div>
     </section>
   );
 }
-

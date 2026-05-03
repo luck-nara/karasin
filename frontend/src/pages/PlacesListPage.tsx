@@ -1,18 +1,42 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { categoriesApi } from "../api/categories";
 import { placesApi } from "../api/places";
-import type { Place } from "../types";
+import { CategorySidebar } from "../components/CategorySidebar";
+import { PlaceCard } from "../components/PlaceCard";
+import type { Category, PlaceListItem } from "../types";
 
 export function PlacesListPage() {
-  const [items, setItems] = useState<Place[] | null>(null);
-  const [query, setQuery] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const categoryIdFromUrl = searchParams.get("category_id");
+
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [items, setItems] = useState<PlaceListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const selectedId = categoryIdFromUrl;
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const data = await placesApi.list();
+        const data = await categoriesApi.list();
+        if (alive) setCategories(data);
+      } catch {
+        if (alive) setCategories([]);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    setError(null);
+    (async () => {
+      try {
+        const data = await placesApi.list(selectedId);
         if (alive) setItems(data);
       } catch (e) {
         if (alive) setError(e instanceof Error ? e.message : "โหลดข้อมูลไม่สำเร็จ");
@@ -21,53 +45,42 @@ export function PlacesListPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [selectedId]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!items) return null;
-    if (!q) return items;
-    return items.filter((p) => {
-      const hay = `${p.name} ${p.province} ${p.location} ${p.tags.join(" ")}`.toLowerCase();
-      return hay.includes(q);
-    });
-  }, [items, query]);
+  function onSelectCategory(id: string | null) {
+    setError(null);
+    if (id === null) {
+      setSearchParams({});
+    } else {
+      setSearchParams({ category_id: id });
+    }
+  }
 
   return (
-    <section className="panel">
-      <div className="panelHeader">
-        <div>
-          <div style={{ fontSize: 18, fontWeight: 650 }}>รายการสถานที่ท่องเที่ยว</div>
-          <div className="muted" style={{ marginTop: 4 }}>
-            {items ? `${items.length} รายการ` : "กำลังโหลด..."}
+    <div className="listLayout">
+      <CategorySidebar categories={categories} selectedId={selectedId} onSelect={onSelectCategory} />
+      <section className="listMain panel">
+        <div className="panelHeader">
+          <div>
+            <div className="panelTitle">รายการสถานที่</div>
+            <div className="muted panelSubtitle">
+              {items ? `${items.length} รายการ` : "กำลังโหลด..."}
+            </div>
           </div>
         </div>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="ค้นหา (ชื่อ/จังหวัด/แท็ก)"
-          style={{ maxWidth: 340 }}
-        />
-      </div>
-      <div className="panelBody">
-        {error ? <div className="muted">{error}</div> : null}
-        {!filtered ? <div className="muted">กำลังโหลด...</div> : null}
-        {filtered && filtered.length === 0 ? <div className="muted">ไม่พบข้อมูล</div> : null}
-        {filtered ? (
-          <div className="cardList">
-            {filtered.map((p) => (
-              <Link key={p.id} to={`/places/${p.id}`} className="card">
-                <div className="cardTitle">{p.name}</div>
-                <div className="muted">
-                  {p.province} • {p.location}
-                </div>
-                {p.tags.length ? <div className="muted">แท็ก: {p.tags.join(", ")}</div> : null}
-              </Link>
-            ))}
-          </div>
-        ) : null}
-      </div>
-    </section>
+        <div className="panelBody">
+          {error ? <div className="muted">{error}</div> : null}
+          {!items ? <div className="muted">กำลังโหลด...</div> : null}
+          {items && items.length === 0 ? <div className="muted">ไม่พบข้อมูลในหมวดนี้</div> : null}
+          {items && items.length > 0 ? (
+            <div className="placeGrid">
+              {items.map((p) => (
+                <PlaceCard key={p.id} place={p} />
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </section>
+    </div>
   );
 }
-

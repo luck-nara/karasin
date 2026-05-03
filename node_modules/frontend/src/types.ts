@@ -1,23 +1,40 @@
-export type Place = {
-  id: string;
+export type Category = {
+  id: number;
+  name: string;
+};
+
+export type PlaceListItem = {
+  id: number;
   name: string;
   description: string;
-  location: string;
-  province: string;
-  tags: string[];
-  imageUrl: string | null;
+  googleMapsUrl: string | null;
+  categoryId: number | null;
+  categoryName: string | null;
+  coverImageUrl: string | null;
+};
+
+export type PlaceImage = {
+  id: number;
+  url: string;
+  isCover: boolean;
+};
+
+export type PlaceDetail = {
+  id: number;
+  name: string;
+  description: string;
+  googleMapsUrl: string | null;
+  categoryId: number | null;
+  categoryName: string | null;
   createdAt: string;
   updatedAt: string;
+  images: PlaceImage[];
 };
 
 export type PlaceCreateInput = {
   name: string;
   description: string;
-  location: string;
-  province: string;
-  tags: string[];
-  imageUrl?: string | null;
+  categoryId: number;
+  googleMapsUrl?: string | null;
+  images: { url: string; isCover?: boolean }[];
 };
-
-export type PlaceUpdateInput = Partial<PlaceCreateInput>;
-

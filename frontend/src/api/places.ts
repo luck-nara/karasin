@@ -1,22 +1,24 @@
 import { env } from "../lib/env";
 import { http } from "../lib/http";
-import type { Place, PlaceCreateInput, PlaceUpdateInput } from "../types";
+import { buildPlacesListQuery } from "../lib/placesQuery";
+import type { PlaceCreateInput, PlaceDetail, PlaceListItem } from "../types";
 
-type ListResponse = { data: Place[] };
-type ItemResponse = { data: Place };
+type ListResponse = { data: PlaceListItem[] };
+type ItemResponse = { data: PlaceDetail };
 
 const base = env.apiBaseUrl.replace(/\/$/, "");
 
 export const placesApi = {
-  async list(): Promise<Place[]> {
-    const res = await http<ListResponse>(`${base}/api/places`);
+  async list(categoryId?: string | null, search?: string | null): Promise<PlaceListItem[]> {
+    const qs = buildPlacesListQuery(categoryId ?? null, search ?? null);
+    const res = await http<ListResponse>(`${base}/api/places${qs}`);
     return res.data;
   },
-  async get(id: string): Promise<Place> {
+  async get(id: string): Promise<PlaceDetail> {
     const res = await http<ItemResponse>(`${base}/api/places/${id}`);
     return res.data;
   },
-  async create(input: PlaceCreateInput): Promise<Place> {
+  async create(input: PlaceCreateInput): Promise<PlaceDetail> {
     const res = await http<ItemResponse>(`${base}/api/places`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -24,7 +26,7 @@ export const placesApi = {
     });
     return res.data;
   },
-  async update(id: string, input: PlaceUpdateInput): Promise<Place> {
+  async update(id: string, input: PlaceCreateInput): Promise<PlaceDetail> {
     const res = await http<ItemResponse>(`${base}/api/places/${id}`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
@@ -36,4 +38,3 @@ export const placesApi = {
     await http(`${base}/api/places/${id}`, { method: "DELETE" });
   },
 };
-

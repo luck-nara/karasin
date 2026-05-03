@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import { categoriesRouter } from "./routes/categories.js";
 import { placesRouter } from "./routes/places.js";
 
 dotenv.config();
@@ -30,6 +31,7 @@ export function createApp() {
   app.use(express.json({ limit: "2mb" }));
 
   app.get("/health", (_req, res) => res.json({ ok: true }));
+  app.use("/api/categories", categoriesRouter);
   app.use("/api/places", placesRouter);
 
   app.use(
