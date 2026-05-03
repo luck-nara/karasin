@@ -31,9 +31,6 @@ export function AdminLayout() {
             </Link>
           </nav>
           <div className="adminToolbarActions">
-            <Link to="/" className="button">
-              หน้าเว็บหลัก
-            </Link>
             <button type="button" className="button" onClick={logout}>
               ออกจากระบบ
             </button>

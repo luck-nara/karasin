@@ -104,10 +104,10 @@ export function AdminPlacesPage() {
               <table className="adminTable">
                 <thead>
                   <tr>
-                    <th scope="col">รูป</th>
-                    <th scope="col">ชื่อสถานที่</th>
-                    <th scope="col">หมวด</th>
-                    <th scope="col" className="adminTableActions">
+                    <th scope="col" style={{ textAlign: "center" }}>รูป</th>
+                    <th scope="col" style={{ textAlign: "center" }}>ชื่อสถานที่</th>
+                    <th scope="col" style={{ textAlign: "center" }}>หมวด</th>
+                    <th scope="col" className="adminTableActions" style={{ textAlign: "center" }}>
                       จัดการ
                     </th>
                   </tr>
@@ -115,7 +115,7 @@ export function AdminPlacesPage() {
                 <tbody>
                   {items.map((p) => (
                     <tr key={p.id}>
-                      <td>
+                      <td style={{ textAlign: "center" }}>
                         <div className="adminThumbCell">
                           {p.coverImageUrl ? (
                             <img src={p.coverImageUrl} alt="" className="adminThumb" />
@@ -124,25 +124,59 @@ export function AdminPlacesPage() {
                           )}
                         </div>
                       </td>
-                      <td>
+                      <td style={{ textAlign: "center" }}>
                         <div className="adminPlaceName">{p.name}</div>
                         <div className="muted adminPlaceShort">{p.description}</div>
                       </td>
-                      <td>{p.categoryName ?? "—"}</td>
-                      <td>
-                        <div className="adminRowActions">
-                          <Link className="button buttonSmall buttonPrimary" to={`/admin/edit/${p.id}`}>
-                            แก้ไข
-                          </Link>
-                          <button
-                            type="button"
-                            className="button buttonSmall buttonDanger"
-                            disabled={busyId === p.id}
-                            onClick={() => setPendingDelete(p)}
-                          >
-                            ลบ
-                          </button>
-                        </div>
+                      <td style={{ textAlign: "center" }}>{p.categoryName ?? "—"}</td>
+                      <td style={{ textAlign: "center" }}>
+                      <div
+                        className="adminRowActions"
+                        style={{
+                          display: "flex",
+                          gap: "8px",
+                          justifyContent: "center"
+                        }}
+                      >
+                        {/* แก้ไข */}
+                        <Link
+                          to={`/admin/edit/${p.id}`}
+                          style={{
+                            padding: "6px 10px",
+                            borderRadius: "6px",
+                            background: "#3b82f6",
+                            color: "white",
+                            textDecoration: "none",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center"
+                          }}
+                          title="แก้ไข"
+                        >
+                          ✏️
+                        </Link>
+
+                        {/* ลบ */}
+                        <button
+                          type="button"
+                          disabled={busyId === p.id}
+                          onClick={() => setPendingDelete(p)}
+                          style={{
+                            padding: "6px 10px",
+                            borderRadius: "6px",
+                            background: "#ef4444",
+                            color: "white",
+                            border: "none",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center"
+                          }}
+                          title="ลบ"
+                        >
+                          🗑️
+                        </button>
+</div>
                       </td>
                     </tr>
                   ))}

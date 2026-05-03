@@ -32,8 +32,8 @@ export function LoginPage() {
 
   return (
     <section className="authPage panel">
-      <div className="panelHeader">
-        <div className="panelTitle">เข้าสู่ระบบผู้ดูแล</div>
+      <div className="panelHeader" style={{  display: "flex",justifyContent: "center",  alignItems: "center"  }}>
+        <div className="panelTitle" >เข้าสู่ระบบผู้ดูแล</div>
       </div>
       <div className="panelBody">
         <form className="stack authForm" onSubmit={onSubmit}>

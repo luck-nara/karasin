@@ -162,9 +162,6 @@ export function AdminCategoriesPage() {
               เพิ่ม แก้ไข หรือลบหมวดหมู่ — ลบได้เมื่อไม่มีสถานที่ใช้หมวดนั้น
             </div>
           </div>
-          <Link to="/admin" className="button">
-            ไปหน้ารายการสถานที่
-          </Link>
         </div>
         <div className="panelBody stack">
           {info ? (

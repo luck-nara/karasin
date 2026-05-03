@@ -6,7 +6,7 @@ export function ContactPage() {
       </div>
       <div className="panelBody stack">
         <p className="muted">
-          หากต้องการสอบถามข้อมูลการท่องเที่ยวหรือความร่วมมือ สามารถติดต่อได้ที่ช่องทางด้านล่าง (ตัวอย่างข้อมูลสำหรับเดโม)
+          หากต้องการสอบถามข้อมูลการท่องเที่ยวหรือความร่วมมือ สามารถติดต่อได้ที่ช่องทางด้านล่าง
         </p>
         <div className="contactGrid">
           <div className="factCard">
