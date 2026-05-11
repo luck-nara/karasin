@@ -1,26 +1,8 @@
-import { useEffect, useState } from "react";
+
 import { Link, useLocation } from "react-router-dom";
-import { categoriesApi } from "../api/categories";
-import type { Category } from "../types";
 
 export function Navbar() {
   const location = useLocation();
-  const [categories, setCategories] = useState<Category[]>([]);
-
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const data = await categoriesApi.list();
-        if (alive) setCategories(data);
-      } catch {
-        if (alive) setCategories([]);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [location.pathname]);
 
   function navLinkClass(path: string) {
     const active = location.pathname === path;
