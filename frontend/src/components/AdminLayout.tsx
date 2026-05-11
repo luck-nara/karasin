@@ -27,7 +27,7 @@ export function AdminLayout() {
               เพิ่มสถานที่
             </Link>
             <Link className={`adminSubLink${categoriesActive ? " isActive" : ""}`} to="/admin/categories">
-              หมวดหมู่
+              เพิ่มหมวดหมู่
             </Link>
           </nav>
           <div className="adminToolbarActions">

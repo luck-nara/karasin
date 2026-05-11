@@ -6,7 +6,12 @@ import { pool } from "./pool.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const sqlFiles = ["001_create_places.sql", "002_seed_categories.sql", "003_alter_places_google_maps.sql"];
+const sqlFiles = [
+  "001_create_places.sql",
+  "002_seed_categories.sql",
+  "003_alter_places_google_maps.sql",
+  "004_alter_categories_timestamps.sql",
+];
 
 async function run() {
   for (const file of sqlFiles) {

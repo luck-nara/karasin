@@ -16,7 +16,11 @@ function isPgUniqueViolation(err: unknown): boolean {
 categoriesRouter.get("/", async (_req, res, next) => {
   try {
     const result = await pool.query(
-      `select id, name from categories order by name asc`
+      `select id, name,
+              created_at as "createdAt",
+              updated_at as "updatedAt"
+         from categories
+        order by created_at asc`
     );
     res.json({ data: result.rows });
   } catch (err) {
@@ -30,7 +34,10 @@ categoriesRouter.post("/", async (req, res, next) => {
     const name = payload.name.trim();
     if (!name) return res.status(400).json({ error: "INVALID_NAME" });
     const result = await pool.query(
-      `insert into categories (name) values ($1) returning id, name`,
+      `insert into categories (name) values ($1)
+       returning id, name,
+                 created_at as "createdAt",
+                 updated_at as "updatedAt"`,
       [name]
     );
     res.status(201).json({ data: result.rows[0] });
@@ -55,7 +62,13 @@ categoriesRouter.put("/:id", async (req, res, next) => {
     if (!exists.rows[0]) return res.status(404).json({ error: "NOT_FOUND" });
 
     const result = await pool.query(
-      `update categories set name = $1 where id = $2 returning id, name`,
+      `update categories
+          set name = $1,
+              updated_at = CURRENT_TIMESTAMP
+        where id = $2
+        returning id, name,
+                  created_at as "createdAt",
+                  updated_at as "updatedAt"`,
       [name, id]
     );
     res.json({ data: result.rows[0] });

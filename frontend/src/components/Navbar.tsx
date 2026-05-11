@@ -36,17 +36,6 @@ export function Navbar() {
         <Link className={navLinkClass("/")} to="/">
           หน้าแรก
         </Link>
-        {categories.map((c) => {
-          const to = `/places?category_id=${c.id}`;
-          const active =
-            location.pathname === "/places" &&
-            new URLSearchParams(location.search).get("category_id") === String(c.id);
-          return (
-            <Link key={c.id} className={`navLink${active ? " navLinkActive" : ""}`} to={to}>
-              {c.name}
-            </Link>
-          );
-        })}
         <Link className={navLinkClass("/contact")} to="/contact">
           ติดต่อ
         </Link>

@@ -209,7 +209,7 @@ export function AdminCategoriesPage() {
               <table className="adminCategoryTable">
                 <thead>
                   <tr>
-                    <th scope="col">#</th>
+                    <th scope="col" style={{ textAlign: "center" }}>ลำดับ</th>
                     <th scope="col">ชื่อหมวดหมู่</th>
                     <th scope="col" className="adminCategoryTableActions">
                       จัดการ
@@ -217,21 +217,22 @@ export function AdminCategoriesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((c) => (
-                    <tr key={c.id}>
-                      <td className="adminCategoryIdCell">{c.id}</td>
-                      <td>
-                        {editingId === c.id ? (
-                          <form className="adminCategoryEditRow" onSubmit={saveEdit}>
-                            <input
-                              className="adminCategoryEditInput"
-                              value={editName}
-                              onChange={(e) => setEditName(e.target.value)}
-                              maxLength={100}
-                              required
-                              disabled={editBusy}
-                              autoFocus
-                            />
+                {items.map((c, index) => (
+                  <tr key={c.id}>
+                    <td className="adminCategoryIdCell">{index + 1}</td>
+
+                    <td>
+                      {editingId === c.id ? (
+                        <form className="adminCategoryEditRow" onSubmit={saveEdit}>
+                          <input
+                            className="adminCategoryEditInput"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            maxLength={100}
+                            required
+                            disabled={editBusy}
+                            autoFocus
+                          />
                             <div className="adminCategoryEditActions">
                               <button type="submit" className="button buttonSmall buttonPrimary" disabled={editBusy}>
                                 {editBusy ? "กำลังบันทึก..." : "บันทึก"}
