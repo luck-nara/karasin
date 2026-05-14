@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { categoriesRouter } from "./routes/categories.js";
+import { chatRouter } from "./routes/chat.js";
 import { placesRouter } from "./routes/places.js";
 
 dotenv.config();
@@ -33,6 +34,7 @@ export function createApp() {
   app.get("/health", (_req, res) => res.json({ ok: true }));
   app.use("/api/categories", categoriesRouter);
   app.use("/api/places", placesRouter);
+  app.use("/api/chat", chatRouter);
 
   app.use(
     (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

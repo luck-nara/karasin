@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 
 export function Navbar() {
   const location = useLocation();
+  const isAdminArea = location.pathname.startsWith("/admin");
 
   function navLinkClass(path: string) {
     const active = location.pathname === path;
@@ -18,6 +19,11 @@ export function Navbar() {
         <Link className={navLinkClass("/")} to="/">
           หน้าแรก
         </Link>
+        {!isAdminArea ? (
+          <Link className={navLinkClass("/assistant")} to="/assistant">
+            ผู้ช่วย AI
+          </Link>
+        ) : null}
         <Link className={navLinkClass("/contact")} to="/contact">
           ติดต่อ
         </Link>

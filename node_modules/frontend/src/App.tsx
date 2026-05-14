@@ -5,6 +5,7 @@ import { RequireAdmin } from "./components/RequireAdmin";
 import { AdminCategoriesPage } from "./pages/AdminCategoriesPage";
 import { AdminPlaceFormPage } from "./pages/AdminPlaceFormPage";
 import { AdminPlacesPage } from "./pages/AdminPlacesPage";
+import { AssistantChatPage } from "./pages/AssistantChatPage";
 import { ContactPage } from "./pages/ContactPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/places" element={<PlacesListPage />} />
           <Route path="/places/:id" element={<PlaceDetailPage />} />
+          <Route path="/assistant" element={<AssistantChatPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route

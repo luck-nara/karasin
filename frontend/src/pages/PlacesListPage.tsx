@@ -13,6 +13,8 @@ export function PlacesListPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [items, setItems] = useState<PlaceListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
+  const [debouncedSearch, setDebouncedSearch] = useState(() => (searchParams.get("search") ?? "").trim());
 
   const selectedId = categoryIdFromUrl;
 
@@ -32,11 +34,16 @@ export function PlacesListPage() {
   }, []);
 
   useEffect(() => {
+    const t = window.setTimeout(() => setDebouncedSearch(search.trim()), 280);
+    return () => window.clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
     let alive = true;
     setError(null);
     (async () => {
       try {
-        const data = await placesApi.list(selectedId);
+        const data = await placesApi.list(selectedId, debouncedSearch || null);
         if (alive) setItems(data);
       } catch (e) {
         if (alive) setError(e instanceof Error ? e.message : "โหลดข้อมูลไม่สำเร็จ");
@@ -45,7 +52,7 @@ export function PlacesListPage() {
     return () => {
       alive = false;
     };
-  }, [selectedId]);
+  }, [selectedId, debouncedSearch]);
 
   function onSelectCategory(id: string | null) {
     setError(null);
@@ -60,18 +67,33 @@ export function PlacesListPage() {
     <div className="listLayout">
       <CategorySidebar categories={categories} selectedId={selectedId} onSelect={onSelectCategory} />
       <section className="listMain panel">
-        <div className="panelHeader">
+        <div className="panelHeader listPanelHeader">
           <div>
             <div className="panelTitle">รายการสถานที่</div>
             <div className="muted panelSubtitle">
               {items ? `${items.length} รายการ` : "กำลังโหลด..."}
             </div>
           </div>
+          <label className="field listPanelSearch">
+            <span>ค้นหาสถานที่</span>
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="ชื่อสถานที่"
+              autoComplete="off"
+              aria-label="ค้นหาสถานที่"
+            />
+          </label>
         </div>
         <div className="panelBody">
           {error ? <div className="muted">{error}</div> : null}
           {!items ? <div className="muted">กำลังโหลด...</div> : null}
-          {items && items.length === 0 ? <div className="muted">ไม่พบข้อมูลในหมวดนี้</div> : null}
+          {items && items.length === 0 ? (
+            <div className="muted">
+              {debouncedSearch ? "ไม่พบข้อมูลที่ตรงกับคำค้น" : "ไม่พบข้อมูลในหมวดนี้"}
+            </div>
+          ) : null}
           {items && items.length > 0 ? (
             <div className="placeGrid">
               {items.map((p) => (
