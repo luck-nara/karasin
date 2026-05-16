@@ -1498,6 +1498,59 @@ label span,
   margin: 4px 0 6px;
 }
 
+.assistantPlaceBlock {
+  margin-bottom: 14px;
+}
+
+.assistantPlaceCoverLink {
+  display: block;
+  margin: 0 0 10px 12px;
+  max-width: min(100%, 360px);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 24px rgba(168, 85, 255, 0.14);
+  text-decoration: none;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.assistantPlaceCoverLink:hover {
+  box-shadow: 0 14px 32px rgba(168, 85, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+.assistantPlaceCoverWrap {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.assistantPlaceCoverImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.assistantPlaceCoverBadge {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 750;
+  color: #fff;
+  background: rgba(27, 19, 64, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.assistantPlaceDbLinks {
+  margin-left: 12px;
+  padding-left: 10px;
+  border-left: 3px solid rgba(168, 85, 255, 0.35);
+}
+
 .assistantMdLabel {
   font-weight: 750;
   color: var(--muted);

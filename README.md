@@ -1,4 +1,4 @@
-# Karasin Travel (React + Node + PostgreSQL + Cloudinary)
+#  Dino ไกด์พาเที่ยวเมืองกาฬสินธุ์  Travel(React + Node + PostgreSQL + Cloudinary)
 
 เว็บแอปแนะนำสถานที่ท่องเที่ยว (CRUD) แยกเป็น 2 ส่วน:
 

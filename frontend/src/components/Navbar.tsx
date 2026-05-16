@@ -13,7 +13,7 @@ export function Navbar() {
   return (
     <header className="navbar">
       <Link to="/" className="navbarBrand">
-        Karasin Travel
+        Dino ไกด์พาเที่ยวเมืองกาฬสินธุ์
       </Link>
       <nav className="navbarNav" aria-label="หลัก">
         <Link className={navLinkClass("/")} to="/">

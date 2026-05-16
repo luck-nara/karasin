@@ -32,7 +32,7 @@ export function HomePage() {
           <p className="heroKicker">ค้นพบกาฬสินธุ์</p>
           <h1 className="heroTitle">แหล่งท่องเที่ยวและประสบการณ์ที่จดจำได้</h1>
           <p className="heroLead">
-            เลือกดูสถานที่ ร้านอาหาร และที่พัก พร้อมข้อมูลเวลาเปิด-ปิดและราคาโดยประมาณ
+            เลือกดูสถานที่ ร้านอาหาร และที่พัก
           </p>
           <div className="heroActions">
             <Link className="button buttonPrimary heroCta" to="/places">

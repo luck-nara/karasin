@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { placesApi } from "../api/places";
 import { env } from "../lib/env";
+import type { PlaceListItem } from "../types";
 
 type ChatRole = "user" | "assistant";
 
@@ -10,6 +12,9 @@ type ChatMessage = {
 };
 
 const apiBase = env.apiBaseUrl.replace(/\/$/, "");
+
+const PLACE_FALLBACK_IMG =
+  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80";
 
 async function consumeSseDeltas(
   body: ReadableStream<Uint8Array>,
@@ -67,10 +72,26 @@ export function AssistantChatPage() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [places, setPlaces] = useState<PlaceListItem[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
 
   const scrollToEnd = useCallback(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const data = await placesApi.list();
+        if (alive) setPlaces(data);
+      } catch {
+        /* แชทยังใช้ได้ แต่จะไม่เติมลิงก์จากฐานข้อมูลอัตโนมัติ */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -181,7 +202,7 @@ export function AssistantChatPage() {
                 )}
                 <div className="assistantMsgBody">
                 {m.content ? (
-                  <AssistantMarkdown text={m.content} />
+                  <AssistantMarkdown text={m.content} places={places} />
                 ) : m.role === "assistant" && busy ? (
                   <span className="assistantTyping" aria-hidden>
                     <span />
@@ -228,12 +249,27 @@ export function AssistantChatPage() {
   );
 }
 
+const ASSISTANT_SHARE_TITLE = "ผู้ช่วยแนะนำที่เที่ยวกาฬสินธุ์";
+
+function assistantSharePageUrl(): string {
+  if (typeof window === "undefined") return "";
+  return `${window.location.origin}/assistant`;
+}
+
+function buildAssistantShareText(text: string): string {
+  const pageUrl = assistantSharePageUrl();
+  const body = text.trim();
+  if (!pageUrl) return body;
+  return `${body}\n\n— ${ASSISTANT_SHARE_TITLE}\n${pageUrl}`;
+}
+
 function AssistantMessageActions({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
+  const shareText = buildAssistantShareText(text);
 
   async function copyText() {
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(shareText);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -241,29 +277,31 @@ function AssistantMessageActions({ text }: { text: string }) {
     }
   }
 
-  async function shareText() {
-    if (typeof navigator.share === "function") {
-      try {
-        await navigator.share({
-          title: "ผู้ช่วยแนะนำที่เที่ยวกาฬสินธุ์",
-          text,
-        });
-        return;
-      } catch (e) {
-        if (e instanceof Error && e.name === "AbortError") return;
-      }
+  async function shareNative() {
+    if (typeof navigator.share !== "function") return;
+    try {
+      await navigator.share({
+        title: ASSISTANT_SHARE_TITLE,
+        text: shareText,
+        url: assistantSharePageUrl(),
+      });
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") return;
     }
-    await copyText();
   }
+
+  const canNativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   return (
     <div className="assistantMsgActions">
       <button type="button" className="button buttonSmall" onClick={() => void copyText()}>
         {copied ? "คัดลอกแล้ว" : "คัดลอก"}
       </button>
-      <button type="button" className="button buttonSmall" onClick={() => void shareText()}>
-        แชร์
-      </button>
+      {canNativeShare ? (
+        <button type="button" className="button buttonSmall" onClick={() => void shareNative()}>
+          แชร์
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -323,12 +361,16 @@ function linkClassFromHref(href: string): "Maps" | "Fb" | "Line" | "" {
 
 const LABELED_URL_GROUPS = [
   { keys: ["แผนที่", "google maps", "google map", "maps"], label: "แผนที่", linkClass: "Maps" as const },
-  { keys: ["facebook", "fb", "เฟซบุ๊ก", "เฟสบุ๊ก"], label: "Facebook", linkClass: "Fb" as const },
-  { keys: ["line", "ไลน์"], label: "LINE", linkClass: "Line" as const },
+  { keys: ["facebook", "fb", "เฟซบุ๊ก", "เฟสบุ๊ก", "เฟส"], label: "Facebook", linkClass: "Fb" as const },
+  { keys: ["line", "ไลน์", "line official"], label: "LINE", linkClass: "Line" as const },
 ];
 
+function normalizeMdLine(line: string): string {
+  return line.trim().replace(/\*\*/g, "");
+}
+
 function parseLabeledUrlLine(line: string): { label: string; href: string; linkClass: string } | null {
-  const trimmed = line.trim();
+  const trimmed = normalizeMdLine(line);
   if (!trimmed) return null;
 
   for (const group of LABELED_URL_GROUPS) {
@@ -540,65 +582,244 @@ function AssistantUrlRow({
   );
 }
 
-/** Minimal formatting: newlines + lines starting with "- " */
-function AssistantMarkdown({ text }: { text: string }) {
+type AssistantBlock =
+  | { kind: "place"; title: string; lines: string[] }
+  | { kind: "text"; lines: string[] };
+
+function splitAssistantBlocks(text: string): AssistantBlock[] {
   const lines = text.split("\n");
+  const blocks: AssistantBlock[] = [];
+  let placeBlock: { title: string; lines: string[] } | null = null;
+  let textLines: string[] = [];
+
+  function flushText() {
+    if (textLines.length > 0) {
+      blocks.push({ kind: "text", lines: textLines });
+      textLines = [];
+    }
+  }
+
+  function flushPlace() {
+    if (placeBlock) {
+      blocks.push({ kind: "place", title: placeBlock.title, lines: placeBlock.lines });
+      placeBlock = null;
+    }
+  }
+
+  for (const line of lines) {
+    const topBullet = /^-\s+(.+)$/.exec(line);
+    const topOrdered = /^\d+\.\s+(.+)$/.exec(line);
+
+    if (topBullet) {
+      flushText();
+      flushPlace();
+      placeBlock = { title: topBullet[1].trim(), lines: [] };
+    } else if (topOrdered) {
+      flushText();
+      flushPlace();
+      placeBlock = { title: topOrdered[1].trim(), lines: [] };
+    } else if (placeBlock) {
+      placeBlock.lines.push(line);
+    } else {
+      textLines.push(line);
+    }
+  }
+
+  flushPlace();
+  flushText();
+  return blocks;
+}
+
+function normalizePlaceName(s: string): string {
+  return s
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[（(].*?[）)]/g, "")
+    .trim();
+}
+
+function matchPlaceByTitle(title: string, places: PlaceListItem[]): PlaceListItem | null {
+  const t = normalizePlaceName(title);
+  if (!t) return null;
+  const exact = places.find((p) => normalizePlaceName(p.name) === t);
+  if (exact) return exact;
+  const partial = places.filter((p) => {
+    const n = normalizePlaceName(p.name);
+    return t.includes(n) || n.includes(t);
+  });
+  if (partial.length === 1) return partial[0];
+  return partial.sort((a, b) => a.name.length - b.name.length)[0] ?? null;
+}
+
+function blockTextHasUrl(blockText: string, url: string | null): boolean {
+  if (!url) return true;
+  return blockText.includes(url);
+}
+
+function blockTextHasSocial(blockText: string, kind: "Maps" | "Fb" | "Line"): boolean {
+  if (kind === "Fb" && /facebook\.com|fb\.com|fb\.me/i.test(blockText)) return true;
+  if (kind === "Line" && /line\.me|lin\.ee/i.test(blockText)) return true;
+  if (kind === "Maps" && /google\.com\/maps|maps\.app|goo\.gl/i.test(blockText)) return true;
+  return false;
+}
+
+function AssistantPlaceCover({ place, rowKey }: { place: PlaceListItem; rowKey: string }) {
+  const img = place.coverImageUrl ?? PLACE_FALLBACK_IMG;
+  return (
+    <Link
+      key={rowKey}
+      to={`/places/${place.id}`}
+      className="assistantPlaceCoverLink"
+      aria-label={`ดูรายละเอียด ${place.name}`}
+    >
+      <div className="assistantPlaceCoverWrap">
+        <img className="assistantPlaceCoverImg" src={img} alt={place.name} loading="lazy" />
+        {place.categoryName ? <span className="assistantPlaceCoverBadge">{place.categoryName}</span> : null}
+      </div>
+    </Link>
+  );
+}
+
+function renderPlaceLinksFromDb(
+  place: PlaceListItem,
+  blockText: string,
+  keyPrefix: string
+): ReactNode[] {
+  const rows: ReactNode[] = [];
+  if (
+    place.googleMapsUrl &&
+    !blockTextHasUrl(blockText, place.googleMapsUrl) &&
+    !blockTextHasSocial(blockText, "Maps")
+  ) {
+    rows.push(
+      <AssistantUrlRow
+        key={`${keyPrefix}gm`}
+        rowKey={`${keyPrefix}gm`}
+        label="แผนที่"
+        href={place.googleMapsUrl}
+        linkClass="Maps"
+      />
+    );
+  }
+  if (
+    place.facebookUrl &&
+    !blockTextHasUrl(blockText, place.facebookUrl) &&
+    !blockTextHasSocial(blockText, "Fb")
+  ) {
+    rows.push(
+      <AssistantUrlRow
+        key={`${keyPrefix}fb`}
+        rowKey={`${keyPrefix}fb`}
+        label="Facebook"
+        href={place.facebookUrl}
+        linkClass="Fb"
+      />
+    );
+  }
+  if (
+    place.lineUrl &&
+    !blockTextHasUrl(blockText, place.lineUrl) &&
+    !blockTextHasSocial(blockText, "Line")
+  ) {
+    rows.push(
+      <AssistantUrlRow
+        key={`${keyPrefix}ln`}
+        rowKey={`${keyPrefix}ln`}
+        label="LINE"
+        href={place.lineUrl}
+        linkClass="Line"
+      />
+    );
+  }
+  return rows;
+}
+
+function renderAssistantLine(line: string, lineKey: string): ReactNode {
+  const t = line.trimEnd();
+  const parsedUrl = parseLabeledUrlLine(line);
+  if (parsedUrl) {
+    return (
+      <AssistantUrlRow
+        key={lineKey}
+        rowKey={lineKey}
+        label={parsedUrl.label}
+        href={parsedUrl.href}
+        linkClass={parsedUrl.linkClass}
+      />
+    );
+  }
+
+  const detailMatch = /^\s*รายละเอียด:\s*(.+)$/.exec(normalizeMdLine(t));
+  if (detailMatch) {
+    return (
+      <p key={lineKey} className="assistantMdDetail">
+        <span className="assistantMdLabel">รายละเอียด:</span>{" "}
+        {renderTextWithLinks(detailMatch[1], `${lineKey}d`)}
+      </p>
+    );
+  }
+
+  const categoryMatch = /^\s*หมวด:\s*(.+)$/.exec(normalizeMdLine(t));
+  if (categoryMatch) {
+    return (
+      <p key={lineKey} className="assistantMdMeta">
+        <span className="assistantMdLabel">หมวด:</span> {categoryMatch[1]}
+      </p>
+    );
+  }
+
+  if (/^\s*-\s+/.test(line)) {
+    const inner = t.replace(/^\s*-\s+/, "");
+    return (
+      <div key={lineKey} className="assistantMdBullet">
+        {renderTextWithLinks(inner, `b${lineKey}`)}
+      </div>
+    );
+  }
+
+  if (/^\s*\d+\.\s+/.test(line)) {
+    const inner = t.replace(/^\s*\d+\.\s+/, "");
+    return (
+      <div key={lineKey} className="assistantMdOrdered">
+        {renderTextWithLinks(inner, `n${lineKey}`)}
+      </div>
+    );
+  }
+
+  if (t === "") return <br key={lineKey} />;
+
+  return (
+    <p key={lineKey} className="assistantMdP">
+      {renderTextWithLinks(line, `l${lineKey}`)}
+    </p>
+  );
+}
+
+/** จัดรูปแบบข้อความ + เติมลิงก์ Facebook/LINE/แผนที่จากฐานข้อมูล */
+function AssistantMarkdown({ text, places }: { text: string; places: PlaceListItem[] }) {
+  const blocks = splitAssistantBlocks(text);
+
   return (
     <div className="assistantMd">
-      {lines.map((line, i) => {
-        const t = line.trimEnd();
-        const parsedUrl = parseLabeledUrlLine(line);
-        if (parsedUrl) {
-          return (
-            <AssistantUrlRow
-              key={`url${i}`}
-              rowKey={`url${i}`}
-              label={parsedUrl.label}
-              href={parsedUrl.href}
-              linkClass={parsedUrl.linkClass}
-            />
-          );
+      {blocks.map((block, bi) => {
+        if (block.kind === "text") {
+          return block.lines.map((line, li) => renderAssistantLine(line, `t${bi}-${li}`));
         }
 
-        const detailMatch = /^\s*รายละเอียด:\s*(.+)$/.exec(t);
-        if (detailMatch) {
-          return (
-            <p key={i} className="assistantMdDetail">
-              <span className="assistantMdLabel">รายละเอียด:</span> {detailMatch[1]}
-            </p>
-          );
-        }
+        const blockText = [block.title, ...block.lines].join("\n");
+        const matched = matchPlaceByTitle(block.title, places);
+        const dbLinks = matched ? renderPlaceLinksFromDb(matched, blockText, `p${bi}`) : [];
 
-        const categoryMatch = /^\s*หมวด:\s*(.+)$/.exec(t);
-        if (categoryMatch) {
-          return (
-            <p key={i} className="assistantMdMeta">
-              <span className="assistantMdLabel">หมวด:</span> {categoryMatch[1]}
-            </p>
-          );
-        }
-
-        if (/^\s*-\s+/.test(line)) {
-          const inner = t.replace(/^\s*-\s+/, "");
-          return (
-            <div key={i} className="assistantMdBullet">
-              {renderTextWithLinks(inner, `b${i}`)}
-            </div>
-          );
-        }
-        if (/^\s*\d+\.\s+/.test(line)) {
-          const inner = t.replace(/^\s*\d+\.\s+/, "");
-          return (
-            <div key={i} className="assistantMdOrdered">
-              {renderTextWithLinks(inner, `n${i}`)}
-            </div>
-          );
-        }
-        if (t === "") return <br key={i} />;
         return (
-          <p key={i} className="assistantMdP">
-            {renderTextWithLinks(line, `l${i}`)}
-          </p>
+          <div key={`place${bi}`} className="assistantPlaceBlock">
+            {matched ? <AssistantPlaceCover place={matched} rowKey={`p${bi}-img`} /> : null}
+            {renderAssistantLine(`- ${block.title}`, `p${bi}-title`)}
+            {block.lines.map((line, li) => renderAssistantLine(line, `p${bi}-${li}`))}
+            {dbLinks.length > 0 ? (
+              <div className="assistantPlaceDbLinks">{dbLinks}</div>
+            ) : null}
+          </div>
         );
       })}
     </div>
