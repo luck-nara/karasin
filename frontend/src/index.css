@@ -1421,6 +1421,83 @@ label span,
   background: linear-gradient(135deg, rgba(234, 67, 53, 0.18), rgba(251, 188, 5, 0.14));
 }
 
+.assistantUrlBlock {
+  margin: 4px 0 10px 12px;
+}
+
+.assistantUrlLine {
+  display: grid;
+  gap: 6px;
+}
+
+.assistantUrlRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.assistantMdLinkUrl {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(168, 85, 247, 0.22);
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 14px;
+  font-weight: 650;
+  word-break: break-all;
+}
+
+.assistantMdLinkUrl.assistantMdLinkFb {
+  border-color: rgba(24, 119, 242, 0.35);
+  color: #0d47a1;
+}
+
+.assistantMdLinkUrl.assistantMdLinkLine {
+  border-color: rgba(6, 199, 85, 0.4);
+  color: #067a38;
+}
+
+.assistantMdLinkUrl.assistantMdLinkMaps {
+  border-color: rgba(234, 67, 53, 0.35);
+  color: #b3261e;
+}
+
+.assistantCopyBtn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  color: var(--muted);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.assistantCopyBtn:hover {
+  color: var(--text);
+  border-color: rgba(168, 85, 247, 0.45);
+  background: rgba(168, 85, 255, 0.08);
+}
+
+.assistantCopyBtn.isCopied {
+  color: #067a38;
+  border-color: rgba(6, 199, 85, 0.45);
+  background: rgba(6, 199, 85, 0.1);
+}
+
+.assistantMdMdLinkWrap {
+  display: block;
+  margin: 4px 0 6px;
+}
+
 .assistantMdLabel {
   font-weight: 750;
   color: var(--muted);

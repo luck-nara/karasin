@@ -281,9 +281,111 @@ function isSafeHttpUrl(url: string): boolean {
   }
 }
 
-/** แปลง URL ที่ขึ้นต้น http(s) เป็นลิงก์ (ไม่ทับส่วนที่อยู่ใน Markdown link แล้ว — เรียกจากข้อความที่ไม่มี md link) */
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function extractFirstUrl(text: string): string | null {
+  const md = /\[([^\]]*)\]\((https?:[^)\s]+)\)/i.exec(text);
+  if (md) {
+    const href = stripUrlTrailingJunk(md[2]);
+    if (isSafeHttpUrl(href)) return href;
+  }
+  const m = /(https?:\/\/[^\s<>"')\]]+)/i.exec(text);
+  if (!m) return null;
+  const href = stripUrlTrailingJunk(m[1]);
+  return isSafeHttpUrl(href) ? href : null;
+}
+
+function formatUrlDisplay(url: string, max = 56): string {
+  if (url.length <= max) return url;
+  return `${url.slice(0, max - 1)}…`;
+}
+
+function linkClassFromHref(href: string): "Maps" | "Fb" | "Line" | "" {
+  try {
+    const host = new URL(href).hostname.toLowerCase();
+    if (host.includes("facebook") || host.includes("fb.com") || host === "fb.me") return "Fb";
+    if (host.includes("line.me") || host.includes("lin.ee")) return "Line";
+    if (
+      host.includes("google") ||
+      host.includes("goo.gl") ||
+      host.includes("maps.app") ||
+      host.includes("maps.google")
+    ) {
+      return "Maps";
+    }
+  } catch {
+    /* ignore */
+  }
+  return "";
+}
+
+const LABELED_URL_GROUPS = [
+  { keys: ["แผนที่", "google maps", "google map", "maps"], label: "แผนที่", linkClass: "Maps" as const },
+  { keys: ["facebook", "fb", "เฟซบุ๊ก", "เฟสบุ๊ก"], label: "Facebook", linkClass: "Fb" as const },
+  { keys: ["line", "ไลน์"], label: "LINE", linkClass: "Line" as const },
+];
+
+function parseLabeledUrlLine(line: string): { label: string; href: string; linkClass: string } | null {
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+
+  for (const group of LABELED_URL_GROUPS) {
+    for (const key of group.keys) {
+      const re = new RegExp(`^${escapeRegExp(key)}\\s*[:：]\\s*(.+)$`, "i");
+      const m = re.exec(trimmed);
+      if (!m) continue;
+      const href = extractFirstUrl(m[1]);
+      if (href) return { label: group.label, href, linkClass: group.linkClass };
+    }
+  }
+
+  const href = extractFirstUrl(trimmed);
+  if (href) {
+    const byHost = linkClassFromHref(href);
+    if (byHost === "Fb") return { label: "Facebook", href, linkClass: "Fb" };
+    if (byHost === "Line") return { label: "LINE", href, linkClass: "Line" };
+    if (byHost === "Maps") return { label: "แผนที่", href, linkClass: "Maps" };
+  }
+
+  for (const group of LABELED_URL_GROUPS) {
+    if (group.linkClass === "Line" && !/\bline\b/i.test(trimmed) && !/ไลน์/i.test(trimmed)) continue;
+    for (const key of group.keys) {
+      if (key.length <= 3 && group.linkClass === "Fb") {
+        if (!new RegExp(`\\b${escapeRegExp(key)}\\b`, "i").test(trimmed)) continue;
+      } else if (!new RegExp(escapeRegExp(key), "i").test(trimmed)) {
+        continue;
+      }
+      const found = extractFirstUrl(trimmed);
+      if (found && linkClassFromHref(found) === group.linkClass) {
+        return { label: group.label, href: found, linkClass: group.linkClass };
+      }
+    }
+  }
+
+  return null;
+}
+
+function renderUrlWithCopy(href: string, key: string, linkClass: string, copyLabel: string): ReactNode {
+  return (
+    <span key={key} className="assistantUrlRow">
+      <a
+        href={href}
+        className={`assistantMdLink assistantMdLinkUrl${linkClass ? ` assistantMdLink${linkClass}` : ""}`}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {formatUrlDisplay(href)}
+      </a>
+      <CopyLinkButton url={href} label={copyLabel} />
+    </span>
+  );
+}
+
+/** แปลง URL ที่ขึ้นต้น http(s) เป็นลิงก์ + ปุ่มคัดลอกสำหรับโซเชียล/แผนที่ */
 function renderPlainUrls(segment: string, keyPrefix: string): ReactNode[] {
-  const re = /(https?:\/\/[^\s<>"']+)/gi;
+  const re = /(https?:\/\/[^\s<>"')\]]+)/gi;
   const out: ReactNode[] = [];
   let last = 0;
   let m: RegExpExecArray | null;
@@ -293,18 +395,24 @@ function renderPlainUrls(segment: string, keyPrefix: string): ReactNode[] {
     }
     const raw = stripUrlTrailingJunk(m[1]);
     if (isSafeHttpUrl(raw)) {
-      const display = raw.length > 52 ? `${raw.slice(0, 50)}…` : raw;
-      out.push(
-        <a
-          key={`${keyPrefix}-u${m.index}`}
-          href={raw}
-          className="assistantMdLink"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {display}
-        </a>
-      );
+      const kind = linkClassFromHref(raw);
+      if (kind) {
+        const label = kind === "Fb" ? "Facebook" : kind === "Line" ? "LINE" : "แผนที่";
+        out.push(renderUrlWithCopy(raw, `${keyPrefix}-u${m.index}`, kind, label));
+      } else {
+        const display = raw.length > 52 ? `${raw.slice(0, 50)}…` : raw;
+        out.push(
+          <a
+            key={`${keyPrefix}-u${m.index}`}
+            href={raw}
+            className="assistantMdLink"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {display}
+          </a>
+        );
+      }
     } else {
       out.push(m[0]);
     }
@@ -327,19 +435,32 @@ function renderTextWithLinks(text: string, keyPrefix: string): ReactNode {
       chunks.push(...renderPlainUrls(text.slice(idx, m.index), `${keyPrefix}p${idx}`));
     }
     const href = stripUrlTrailingJunk(m[2]);
-    const label = (m[1] ?? "").trim() || "แผนที่";
+    const mdLabel = (m[1] ?? "").trim();
     if (isSafeHttpUrl(href)) {
-      chunks.push(
-        <a
-          key={`${keyPrefix}m${m.index}`}
-          href={href}
-          className="assistantMdLink assistantMdLinkPill"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {label}
-        </a>
-      );
+      const kind = linkClassFromHref(href);
+      const parsed = parseLabeledUrlLine(`${mdLabel}: ${href}`);
+      if (kind || parsed) {
+        const linkClass = parsed?.linkClass ?? kind ?? "";
+        const displayLabel = parsed?.label ?? (mdLabel || "ลิงก์");
+        chunks.push(
+          <span key={`${keyPrefix}m${m.index}`} className="assistantMdMdLinkWrap">
+            {mdLabel ? <span className="assistantMdLabel">{displayLabel}: </span> : null}
+            {renderUrlWithCopy(href, `${keyPrefix}mc${m.index}`, linkClass, displayLabel)}
+          </span>
+        );
+      } else {
+        chunks.push(
+          <a
+            key={`${keyPrefix}m${m.index}`}
+            href={href}
+            className="assistantMdLink assistantMdLinkPill"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {mdLabel || formatUrlDisplay(href)}
+          </a>
+        );
+      }
     } else {
       chunks.push(m[0]);
     }
@@ -351,29 +472,71 @@ function renderTextWithLinks(text: string, keyPrefix: string): ReactNode {
   return chunks.length === 0 ? text : <>{chunks}</>;
 }
 
-function renderLabeledUrlLine(
-  line: string,
-  key: string,
-  label: string,
-  pillClass: string,
-  linkLabel: string
-): ReactNode | null {
-  const m = new RegExp(`^\\s*${label}:\\s*(https?:\\S+)\\s*$`, "i").exec(line.trimEnd());
-  if (!m) return null;
-  const href = stripUrlTrailingJunk(m[1]);
-  if (!isSafeHttpUrl(href)) return null;
+function CopyLinkIcon({ copied }: { copied: boolean }) {
+  if (copied) {
+    return (
+      <svg viewBox="0 0 24 24" width={16} height={16} aria-hidden focusable="false">
+        <path
+          fill="currentColor"
+          d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"
+        />
+      </svg>
+    );
+  }
   return (
-    <p key={key} className="assistantMdLabelRow">
-      <span className="assistantMdLabel">{label}:</span>{" "}
-      <a
-        href={href}
-        className={`assistantMdLink assistantMdLinkPill assistantMdLink${pillClass}`}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        {linkLabel}
-      </a>
-    </p>
+    <svg viewBox="0 0 24 24" width={16} height={16} aria-hidden focusable="false">
+      <path
+        fill="currentColor"
+        d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"
+      />
+    </svg>
+  );
+}
+
+function CopyLinkButton({ url, label }: { url: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      className={`assistantCopyBtn${copied ? " isCopied" : ""}`}
+      onClick={() => void copy()}
+      aria-label={copied ? "คัดลอกลิงก์แล้ว" : `คัดลอกลิงก์ ${label}`}
+      title={copied ? "คัดลอกแล้ว" : "คัดลอกลิงก์"}
+    >
+      <CopyLinkIcon copied={copied} />
+    </button>
+  );
+}
+
+function AssistantUrlRow({
+  label,
+  href,
+  linkClass,
+  rowKey,
+}: {
+  label: string;
+  href: string;
+  linkClass: string;
+  rowKey: string;
+}) {
+  return (
+    <div key={rowKey} className="assistantMdLabelRow assistantUrlBlock">
+      <div className="assistantUrlLine">
+        <span className="assistantMdLabel">{label}:</span>
+        {renderUrlWithCopy(href, `${rowKey}-link`, linkClass, label)}
+      </div>
+    </div>
   );
 }
 
@@ -384,11 +547,18 @@ function AssistantMarkdown({ text }: { text: string }) {
     <div className="assistantMd">
       {lines.map((line, i) => {
         const t = line.trimEnd();
-        const labeled =
-          renderLabeledUrlLine(line, `map${i}`, "แผนที่", "Maps", "เปิดแผนที่") ??
-          renderLabeledUrlLine(line, `fb${i}`, "Facebook", "Fb", "Facebook") ??
-          renderLabeledUrlLine(line, `ln${i}`, "LINE", "Line", "LINE");
-        if (labeled) return labeled;
+        const parsedUrl = parseLabeledUrlLine(line);
+        if (parsedUrl) {
+          return (
+            <AssistantUrlRow
+              key={`url${i}`}
+              rowKey={`url${i}`}
+              label={parsedUrl.label}
+              href={parsedUrl.href}
+              linkClass={parsedUrl.linkClass}
+            />
+          );
+        }
 
         const detailMatch = /^\s*รายละเอียด:\s*(.+)$/.exec(t);
         if (detailMatch) {
