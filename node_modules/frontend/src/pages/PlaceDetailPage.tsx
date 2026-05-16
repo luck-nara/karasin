@@ -96,6 +96,34 @@ export function PlaceDetailPage() {
               <div className="detailLabel">รายละเอียด</div>
               <p className="detailText">{place.description}</p>
             </div>
+
+            {place.facebookUrl || place.lineUrl ? (
+              <div className="detailContact">
+                <div className="detailLabel">ติดต่อ</div>
+                <div className="detailContactActions">
+                  {place.facebookUrl ? (
+                    <a
+                      className="button contactSocialLink contactSocialLinkFb"
+                      href={place.facebookUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Facebook
+                    </a>
+                  ) : null}
+                  {place.lineUrl ? (
+                    <a
+                      className="button contactSocialLink contactSocialLinkLine"
+                      href={place.lineUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      LINE
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
           </>
         ) : null}
       </div>

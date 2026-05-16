@@ -25,6 +25,8 @@ export function AdminPlaceFormPage({ mode }: { mode: "create" | "edit" }) {
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [googleMapsUrl, setGoogleMapsUrl] = useState("");
+  const [facebookUrl, setFacebookUrl] = useState("");
+  const [lineUrl, setLineUrl] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -56,6 +58,8 @@ export function AdminPlaceFormPage({ mode }: { mode: "create" | "edit" }) {
         setDescription(place.description);
         setCategoryId(place.categoryId ?? "");
         setGoogleMapsUrl(place.googleMapsUrl ?? "");
+        setFacebookUrl(place.facebookUrl ?? "");
+        setLineUrl(place.lineUrl ?? "");
         const urls = place.images.map((i) => i.url);
         setExistingUrls(urls);
         const cov = place.images.findIndex((i) => i.isCover);
@@ -117,11 +121,15 @@ export function AdminPlaceFormPage({ mode }: { mode: "create" | "edit" }) {
       }));
 
       const trimmedMaps = googleMapsUrl.trim();
+      const trimmedFb = facebookUrl.trim();
+      const trimmedLine = lineUrl.trim();
       const payload = {
         name,
         description,
         categoryId,
         googleMapsUrl: trimmedMaps === "" ? null : trimmedMaps,
+        facebookUrl: trimmedFb === "" ? null : trimmedFb,
+        lineUrl: trimmedLine === "" ? null : trimmedLine,
         images,
       };
 
@@ -217,6 +225,28 @@ export function AdminPlaceFormPage({ mode }: { mode: "create" | "edit" }) {
               placeholder="https://maps.app.goo.gl/..."
             />
           </FormField>
+
+          <div className="grid2">
+            <FormField
+              label="Facebook"
+              hint="ลิงก์เพจหรือโพสต์ Facebook (ไม่บังคับ)"
+            >
+              <input
+                type="url"
+                value={facebookUrl}
+                onChange={(e) => setFacebookUrl(e.target.value)}
+                placeholder="https://www.facebook.com/..."
+              />
+            </FormField>
+            <FormField label="LINE" hint="ลิงก์ LINE Official หรือ line.me (ไม่บังคับ)">
+              <input
+                type="url"
+                value={lineUrl}
+                onChange={(e) => setLineUrl(e.target.value)}
+                placeholder="https://line.me/R/ti/p/@..."
+              />
+            </FormField>
+          </div>
 
           {isEdit && existingUrls.length > 0 ? (
             <FormField label="รูปที่มีอยู่ (ลบได้ถ้าไม่ต้องการใช้)">

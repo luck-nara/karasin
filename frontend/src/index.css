@@ -720,14 +720,48 @@ label span,
 
 .contactGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
 }
 
-@media (max-width: 900px) {
-  .contactGrid {
-    grid-template-columns: 1fr;
-  }
+.contactSocialLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-weight: 750;
+  font-size: 15px;
+  text-decoration: none;
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.contactSocialLink:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 8px 20px rgba(168, 85, 255, 0.2);
+}
+
+.contactSocialLinkFb {
+  color: #fff;
+  background: linear-gradient(135deg, #1877f2, #0d5dbf);
+  border: 1px solid rgba(24, 119, 242, 0.4);
+}
+
+.contactSocialLinkLine {
+  color: #fff;
+  background: linear-gradient(135deg, #06c755, #00a34a);
+  border: 1px solid rgba(6, 199, 85, 0.45);
+}
+
+.detailContact {
+  margin-top: 4px;
+}
+
+.detailContactActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .thumb {
@@ -1277,6 +1311,20 @@ label span,
   align-self: flex-start;
 }
 
+.assistantMsgHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.assistantMsgActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .assistantMsgMeta {
   font-size: 12px;
   font-weight: 800;
@@ -1356,6 +1404,44 @@ label span,
   text-decoration: none;
   filter: brightness(1.04);
   box-shadow: 0 6px 18px rgba(168, 85, 255, 0.22);
+}
+
+.assistantMdLinkFb {
+  border-color: rgba(24, 119, 242, 0.45);
+  background: linear-gradient(135deg, rgba(24, 119, 242, 0.2), rgba(13, 93, 191, 0.16));
+}
+
+.assistantMdLinkLine {
+  border-color: rgba(6, 199, 85, 0.5);
+  background: linear-gradient(135deg, rgba(6, 199, 85, 0.22), rgba(0, 163, 74, 0.14));
+}
+
+.assistantMdLinkMaps {
+  border-color: rgba(234, 67, 53, 0.45);
+  background: linear-gradient(135deg, rgba(234, 67, 53, 0.18), rgba(251, 188, 5, 0.14));
+}
+
+.assistantMdLabel {
+  font-weight: 750;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.assistantMdLabelRow,
+.assistantMdDetail,
+.assistantMdMeta {
+  margin: 2px 0 6px 12px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.assistantMdBullet .assistantMdDetail,
+.assistantMdBullet .assistantMdMeta,
+.assistantMdBullet .assistantMdLabelRow,
+.assistantMdOrdered .assistantMdDetail,
+.assistantMdOrdered .assistantMdMeta,
+.assistantMdOrdered .assistantMdLabelRow {
+  margin-left: 4px;
 }
 
 .assistantTyping {

@@ -161,13 +161,25 @@ export function AssistantChatPage() {
             ดิฉัน/ผมจะช่วยสรุปจากข้อมูลที่มีในเว็บให้สั้นๆ อ่านง่ายค่ะ/ครับ
           </div>
 
-          {messages.map((m, i) => (
-            <div
-              key={`${i}-${m.role}`}
-              className={`assistantMsg assistantMsg${m.role === "user" ? "User" : "Bot"}`}
-            >
-              <div className="assistantMsgMeta">{m.role === "user" ? "คุณ" : "ผู้ช่วย"}</div>
-              <div className="assistantMsgBody">
+          {messages.map((m, i) => {
+            const isStreamingThis = busy && i === messages.length - 1 && m.role === "assistant";
+            const showAssistantActions =
+              m.role === "assistant" && m.content.trim().length > 0 && !isStreamingThis;
+
+            return (
+              <div
+                key={`${i}-${m.role}`}
+                className={`assistantMsg assistantMsg${m.role === "user" ? "User" : "Bot"}`}
+              >
+                {m.role === "assistant" ? (
+                  <div className="assistantMsgHead">
+                    <div className="assistantMsgMeta">ผู้ช่วย</div>
+                    {showAssistantActions ? <AssistantMessageActions text={m.content} /> : null}
+                  </div>
+                ) : (
+                  <div className="assistantMsgMeta">คุณ</div>
+                )}
+                <div className="assistantMsgBody">
                 {m.content ? (
                   <AssistantMarkdown text={m.content} />
                 ) : m.role === "assistant" && busy ? (
@@ -178,8 +190,9 @@ export function AssistantChatPage() {
                   </span>
                 ) : null}
               </div>
-            </div>
-          ))}
+              </div>
+            );
+          })}
           <div ref={endRef} />
         </div>
 
@@ -211,6 +224,46 @@ export function AssistantChatPage() {
           <p className="muted assistantHint">Enter ส่งข้อความ · Shift+Enter ขึ้นบรรทัดใหม่</p>
         </div>
       </section>
+    </div>
+  );
+}
+
+function AssistantMessageActions({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copyText() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function shareText() {
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({
+          title: "ผู้ช่วยแนะนำที่เที่ยวกาฬสินธุ์",
+          text,
+        });
+        return;
+      } catch (e) {
+        if (e instanceof Error && e.name === "AbortError") return;
+      }
+    }
+    await copyText();
+  }
+
+  return (
+    <div className="assistantMsgActions">
+      <button type="button" className="button buttonSmall" onClick={() => void copyText()}>
+        {copied ? "คัดลอกแล้ว" : "คัดลอก"}
+      </button>
+      <button type="button" className="button buttonSmall" onClick={() => void shareText()}>
+        แชร์
+      </button>
     </div>
   );
 }
@@ -298,6 +351,32 @@ function renderTextWithLinks(text: string, keyPrefix: string): ReactNode {
   return chunks.length === 0 ? text : <>{chunks}</>;
 }
 
+function renderLabeledUrlLine(
+  line: string,
+  key: string,
+  label: string,
+  pillClass: string,
+  linkLabel: string
+): ReactNode | null {
+  const m = new RegExp(`^\\s*${label}:\\s*(https?:\\S+)\\s*$`, "i").exec(line.trimEnd());
+  if (!m) return null;
+  const href = stripUrlTrailingJunk(m[1]);
+  if (!isSafeHttpUrl(href)) return null;
+  return (
+    <p key={key} className="assistantMdLabelRow">
+      <span className="assistantMdLabel">{label}:</span>{" "}
+      <a
+        href={href}
+        className={`assistantMdLink assistantMdLinkPill assistantMdLink${pillClass}`}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {linkLabel}
+      </a>
+    </p>
+  );
+}
+
 /** Minimal formatting: newlines + lines starting with "- " */
 function AssistantMarkdown({ text }: { text: string }) {
   const lines = text.split("\n");
@@ -305,6 +384,30 @@ function AssistantMarkdown({ text }: { text: string }) {
     <div className="assistantMd">
       {lines.map((line, i) => {
         const t = line.trimEnd();
+        const labeled =
+          renderLabeledUrlLine(line, `map${i}`, "แผนที่", "Maps", "เปิดแผนที่") ??
+          renderLabeledUrlLine(line, `fb${i}`, "Facebook", "Fb", "Facebook") ??
+          renderLabeledUrlLine(line, `ln${i}`, "LINE", "Line", "LINE");
+        if (labeled) return labeled;
+
+        const detailMatch = /^\s*รายละเอียด:\s*(.+)$/.exec(t);
+        if (detailMatch) {
+          return (
+            <p key={i} className="assistantMdDetail">
+              <span className="assistantMdLabel">รายละเอียด:</span> {detailMatch[1]}
+            </p>
+          );
+        }
+
+        const categoryMatch = /^\s*หมวด:\s*(.+)$/.exec(t);
+        if (categoryMatch) {
+          return (
+            <p key={i} className="assistantMdMeta">
+              <span className="assistantMdLabel">หมวด:</span> {categoryMatch[1]}
+            </p>
+          );
+        }
+
         if (/^\s*-\s+/.test(line)) {
           const inner = t.replace(/^\s*-\s+/, "");
           return (

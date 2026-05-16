@@ -9,6 +9,8 @@ const placeRowSelect = `
          tp.name,
          tp.description,
          tp.google_maps_url as "googleMapsUrl",
+         tp.facebook_url as "facebookUrl",
+         tp.line_url as "lineUrl",
          tp.category_id as "categoryId",
          c.name as "categoryName"`;
 
@@ -106,10 +108,17 @@ placesRouter.post("/", async (req, res, next) => {
 
       const insertPlace = await client.query(
         `insert into tourist_places
-          (name, description, category_id, google_maps_url)
-         values ($1, $2, $3, $4)
+          (name, description, category_id, google_maps_url, facebook_url, line_url)
+         values ($1, $2, $3, $4, $5, $6)
          returning id`,
-        [payload.name, payload.description, payload.categoryId, payload.googleMapsUrl ?? null]
+        [
+          payload.name,
+          payload.description,
+          payload.categoryId,
+          payload.googleMapsUrl ?? null,
+          payload.facebookUrl ?? null,
+          payload.lineUrl ?? null,
+        ]
       );
       const placeId = insertPlace.rows[0].id as number;
 
@@ -183,9 +192,19 @@ placesRouter.put("/:id", async (req, res, next) => {
              description = $2,
              category_id = $3,
              google_maps_url = $4,
+             facebook_url = $5,
+             line_url = $6,
              updated_at = now()
-         where id = $5`,
-        [payload.name, payload.description, payload.categoryId, payload.googleMapsUrl ?? null, id]
+         where id = $7`,
+        [
+          payload.name,
+          payload.description,
+          payload.categoryId,
+          payload.googleMapsUrl ?? null,
+          payload.facebookUrl ?? null,
+          payload.lineUrl ?? null,
+          id,
+        ]
       );
 
       await client.query(`delete from place_images where place_id = $1`, [id]);

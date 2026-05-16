@@ -24,17 +24,24 @@ function buildSystemPrompt(places) {
         category: p.categoryName ?? "",
         description: truncateText(p.description ?? "", 260),
         googleMapsUrl: p.googleMapsUrl || undefined,
+        facebookUrl: p.facebookUrl || undefined,
+        lineUrl: p.lineUrl || undefined,
     }));
     return [
         "คุณคือผู้ช่วยแนะนำสถานที่ท่องเที่ยวจังหวัดกาฬสินธุ์",
         "กฎสำคัญ:",
         "- ตอบเป็นภาษาไทยเท่านั้น น้ำเสียงสุภาพ อ่านง่าย",
-        "- ตอบสั้น กระชับ ไม่อธิบายยาวเกินจำเป็น",
-        "- ใช้เฉพาะข้อมูลจากอาร์เรย์ JSON \"places\" ด้านล่างเท่านั้น ห้ามสร้างชื่อสถานที่ รายละเอียด หมวดหมู่ หรือลิงก์แผนที่ที่ไม่มีในรายการ",
-        "- ห้ามใช้รูปแบบ Markdown สำหรับลิงก์ เช่น ห้ามเขียน [ข้อความ](url) — ห้ามใส่วงเล็บเหลี่ยมหรือวงเล็บล้อม URL แบบ Markdown",
-        "- ถ้าสถานที่มี googleMapsUrl ใน JSON ให้ในข้อนั้นมีบรรทัดถัดจากชื่อ/คำอธิบายย่อ ว่า \"แผนที่: \" ตามด้วย URL จากฟิลด์ googleMapsUrl ตัวเดียวกับใน JSON เท่านั้น (คัดลอกเต็ม ไม่ย่อ ไม่แปลง)",
-        "- ถ้าไม่มี googleMapsUrl ในข้อมูลสถานที่นั้น ห้ามใส่ลิงก์แผนที่หรือ URL ใดๆ สำหรับสถานที่นั้น",
-        "- ห้ามสร้างลิงก์ Google Maps แบบค้นหา หรือ URL ที่ไม่ได้มาจากฟิลด์ googleMapsUrl ของสถานที่นั้น",
+        "- ตอบกระชับแต่ครบข้อมูลสำคัญของแต่ละสถานที่ที่แนะนำ",
+        "- ใช้เฉพาะข้อมูลจากอาร์เรย์ JSON \"places\" ด้านล่างเท่านั้น ห้ามสร้างชื่อสถานที่ รายละเอียด หมวดหมู่ หรือลิงก์ที่ไม่มีในรายการ",
+        "- เมื่อแนะนำแต่ละสถานที่ ให้ใช้รูปแบบนี้ (ขึ้นต้นด้วย \"- ชื่อสถานที่\" แล้วบรรทัดถัดไปเยื้องด้วยข้อความ):",
+        "  หมวด: (จาก category)",
+        "  รายละเอียด: (สรุปจาก description สั้นๆ 1–2 ประโยค ห้ามยาวเกิน)",
+        "  แผนที่: URL (เฉพาะเมื่อมี googleMapsUrl)",
+        "  Facebook: URL (เฉพาะเมื่อมี facebookUrl)",
+        "  LINE: URL (เฉพาะเมื่อมี lineUrl)",
+        "  ข้ามบรรทัดที่ไม่มีข้อมูลใน JSON (เช่นไม่มี facebookUrl ก็ไม่ต้องมีบรรทัด Facebook)",
+        "- ห้ามใช้รูปแบบ Markdown สำหรับลิงก์ เช่น ห้ามเขียน [ข้อความ](url)",
+        "- คัดลอก URL จาก JSON เต็มๆ ห้ามสร้างหรือแปลงลิงก์เอง",
         "- ถ้าไม่มีข้อมูลในระบบที่ตอบคำถามได้ (เช่น places ว่าง หรือไม่มีสถานที่ที่ตรงกับคำถาม) ให้ตอบว่า \"ขออภัย ยังไม่มีข้อมูลในระบบ\" โดยใช้ประโยคนี้ตรงๆ",
         "- หากแนะนำหลายสถานที่ ให้จัดเป็นข้อ โดยแต่ละข้อขึ้นต้นด้วย \"- \" หรือใช้ลำดับเลข",
         "- ไม่ต้องคัดลอกคำถามผู้ใช้มาในคำตอบ",
@@ -48,7 +55,9 @@ async function loadPlacesForPrompt() {
        tp.name,
        tp.description,
        c.name as "categoryName",
-       tp.google_maps_url as "googleMapsUrl"
+       tp.google_maps_url as "googleMapsUrl",
+       tp.facebook_url as "facebookUrl",
+       tp.line_url as "lineUrl"
      from tourist_places tp
      left join categories c on c.id = tp.category_id
      where tp.is_active = true

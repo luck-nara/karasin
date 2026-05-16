@@ -9,6 +9,7 @@ const sqlFiles = [
     "002_seed_categories.sql",
     "003_alter_places_google_maps.sql",
     "004_alter_categories_timestamps.sql",
+    "005_alter_places_facebook_line.sql",
 ];
 async function run() {
     for (const file of sqlFiles) {

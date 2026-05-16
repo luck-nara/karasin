@@ -10,6 +10,8 @@ export type PlaceListItem = {
   name: string;
   description: string;
   googleMapsUrl: string | null;
+  facebookUrl: string | null;
+  lineUrl: string | null;
   categoryId: number | null;
   categoryName: string | null;
   coverImageUrl: string | null;
@@ -26,6 +28,8 @@ export type PlaceDetail = {
   name: string;
   description: string;
   googleMapsUrl: string | null;
+  facebookUrl: string | null;
+  lineUrl: string | null;
   categoryId: number | null;
   categoryName: string | null;
   createdAt: string;
@@ -38,5 +42,7 @@ export type PlaceCreateInput = {
   description: string;
   categoryId: number;
   googleMapsUrl?: string | null;
+  facebookUrl?: string | null;
+  lineUrl?: string | null;
   images: { url: string; isCover?: boolean }[];
 };
